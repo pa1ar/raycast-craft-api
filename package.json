@@ -1,0 +1,168 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "craft-api",
+  "title": "Craft API",
+  "description": "Search, read, and edit your Craft Docs vault from Raycast via the Craft API. Powered by @1ar/craft-cli.",
+  "icon": "craft.png",
+  "keywords": ["craft", "docs", "notes", "pkm", "daily note"],
+  "author": "pa1ar",
+  "license": "MIT",
+  "categories": ["Productivity", "Applications"],
+  "commands": [
+    {
+      "name": "search",
+      "title": "Search Craft",
+      "subtitle": "Craft API",
+      "description": "Search across every document in your Craft space",
+      "mode": "view",
+      "path": "src/search.tsx"
+    },
+    {
+      "name": "daily",
+      "title": "Open Daily Note",
+      "subtitle": "Craft API",
+      "description": "Open today's daily note in the Craft app",
+      "mode": "no-view",
+      "path": "src/daily.tsx",
+      "arguments": [
+        {
+          "name": "date",
+          "placeholder": "today|yesterday|YYYY-MM-DD",
+          "type": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "add-task",
+      "title": "Add Task to Inbox",
+      "subtitle": "Craft API",
+      "description": "Add a task to your Craft inbox",
+      "mode": "no-view",
+      "path": "src/add-task.tsx",
+      "arguments": [
+        {
+          "name": "task",
+          "placeholder": "call the accountant",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "append-daily",
+      "title": "Append to Daily Note",
+      "subtitle": "Craft API",
+      "description": "Append a line to today's daily note",
+      "mode": "no-view",
+      "path": "src/append-daily.tsx",
+      "arguments": [
+        {
+          "name": "text",
+          "placeholder": "15:42 thought",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "recent",
+      "title": "Recent Documents",
+      "subtitle": "Craft API",
+      "description": "Browse recently modified documents",
+      "mode": "view",
+      "path": "src/recent.tsx"
+    },
+    {
+      "name": "fuzzy-open",
+      "title": "Open Document",
+      "subtitle": "Craft API",
+      "description": "Fuzzy-open any document by title",
+      "mode": "view",
+      "path": "src/fuzzy-open.tsx"
+    },
+    {
+      "name": "tasks",
+      "title": "Craft Tasks",
+      "subtitle": "Craft API",
+      "description": "Browse and manage tasks by scope",
+      "mode": "view",
+      "path": "src/tasks.tsx"
+    },
+    {
+      "name": "create-document",
+      "title": "Create Craft Document",
+      "subtitle": "Craft API",
+      "description": "Create a new document and open it in Craft",
+      "mode": "no-view",
+      "path": "src/create-document.tsx",
+      "arguments": [
+        {
+          "name": "title",
+          "placeholder": "Document title",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "folders",
+      "title": "Browse Folders",
+      "subtitle": "Craft API",
+      "description": "Browse your Craft folder structure",
+      "mode": "view",
+      "path": "src/folders.tsx"
+    },
+    {
+      "name": "collections",
+      "title": "Browse Collections",
+      "subtitle": "Craft API",
+      "description": "Browse collections and their items",
+      "mode": "view",
+      "path": "src/collections.tsx"
+    },
+    {
+      "name": "whoami",
+      "title": "Craft Space Info",
+      "subtitle": "Craft API",
+      "description": "Show connected Craft space name and info",
+      "mode": "no-view",
+      "path": "src/whoami.tsx"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "craftUrl",
+      "title": "Craft API URL",
+      "description": "Full URL to the Craft API, including /api/v1 suffix",
+      "type": "textfield",
+      "required": true,
+      "placeholder": "https://connect.craft.do/links/.../api/v1"
+    },
+    {
+      "name": "craftKey",
+      "title": "Craft API Key",
+      "description": "Bearer token starting with pdk_",
+      "type": "password",
+      "required": true
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.80.0",
+    "@raycast/utils": "^1.17.0",
+    "@1ar/craft-cli": "file:../../tools/craft-cli"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/node": "^20.10.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.58.1"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "lint": "ray lint"
+  }
+}
