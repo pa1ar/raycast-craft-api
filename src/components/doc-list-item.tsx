@@ -14,6 +14,7 @@ import { useCachedPromise } from "@raycast/utils";
 import type { CraftClient } from "@1ar/craft-cli/lib";
 import type { Document, BlockLink } from "@1ar/craft-cli/lib";
 import type { ReactNode } from "react";
+import { getLocalStoreAsync } from "../client";
 
 interface Props {
   doc: Document;
@@ -25,8 +26,13 @@ interface Props {
 
 function DocPreview({ docId, client }: { docId: string; client: CraftClient }) {
   const { data, isLoading } = useCachedPromise(
-    async (id: string) =>
-      (await client.blocks.get(id, { format: "markdown" })) as string,
+    async (id: string) => {
+      // try local first (~0.7ms vs ~4.5s API)
+      const local = await getLocalStoreAsync();
+      const content = local?.getDocContent(id);
+      if (content) return content;
+      return (await client.blocks.get(id, { format: "markdown" })) as string;
+    },
     [docId],
   );
   return <Detail isLoading={isLoading} markdown={data ?? ""} />;
@@ -132,9 +138,13 @@ export function DocListItem({
                 title: "Fetching...",
               });
               try {
-                const md = (await client.blocks.get(doc.id, {
-                  format: "markdown",
-                })) as string;
+                const local = await getLocalStoreAsync();
+                let md = local?.getDocContent(doc.id);
+                if (!md) {
+                  md = (await client.blocks.get(doc.id, {
+                    format: "markdown",
+                  })) as string;
+                }
                 await Clipboard.copy(md);
                 await showToast({
                   style: Toast.Style.Success,

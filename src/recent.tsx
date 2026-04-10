@@ -1,14 +1,25 @@
-// Recent Documents - list modified in last 14 days
+// Recent Documents - local store for speed, API fallback
 import { List } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import { getClient } from "./client";
+import { getClient, getLocalStoreAsync } from "./client";
 import { DocListItem } from "./components/doc-list-item";
+import { toDocument } from "./local-store";
 
 export default function Command() {
   const client = getClient();
   const since = isoDaysAgo(14);
 
   const { data, isLoading } = useCachedPromise(async () => {
+    const local = await getLocalStoreAsync();
+    if (local) {
+      const docs = local
+        .listDocs()
+        .filter((d) => d.modified >= since)
+        .map(toDocument);
+      return docs.sort((a, b) =>
+        (b.lastModifiedAt ?? "").localeCompare(a.lastModifiedAt ?? ""),
+      );
+    }
     const res = await client.documents.list({
       lastModifiedDateGte: since,
       fetchMetadata: true,

@@ -82,6 +82,14 @@
       "path": "src/fuzzy-open.tsx"
     },
     {
+      "name": "daily-notes",
+      "title": "Daily Notes",
+      "subtitle": "Craft API",
+      "description": "Browse and open daily notes",
+      "mode": "view",
+      "path": "src/daily-notes.tsx"
+    },
+    {
       "name": "tasks",
       "title": "Craft Tasks",
       "subtitle": "Craft API",
@@ -148,9 +156,9 @@
     }
   ],
   "dependencies": {
+    "@1ar/craft-cli": "file:../../tools/craft-cli",
     "@raycast/api": "^1.80.0",
-    "@raycast/utils": "^1.17.0",
-    "@1ar/craft-cli": "file:../../tools/craft-cli"
+    "@raycast/utils": "^1.17.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

@@ -1,5 +1,5 @@
-// Search Craft (via Craft API) - typed query -> /documents/search
-// displays document title + matching snippet, like the official Craft extension
+// Search Craft - local FTS5 for speed, API fallback
+// displays document title + matching snippet
 import { useState } from "react";
 import {
   List,
@@ -12,13 +12,13 @@ import {
   Toast,
 } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import { getClient } from "./client";
-import type { Document, DocumentSearchHit } from "@1ar/craft-cli/lib";
+import { getClient, getLocalStoreAsync } from "./client";
+import { toDocument } from "./local-store";
+import type { Document } from "@1ar/craft-cli/lib";
 
-interface EnrichedHit extends DocumentSearchHit {
-  docTitle: string;
-  docDate: string;
-  docLink?: string;
+interface SearchHit {
+  doc: Document;
+  snippet: string;
 }
 
 export default function Command() {
@@ -29,22 +29,42 @@ export default function Command() {
     async (q: string) => {
       if (!q.trim()) return [];
 
-      // fetch search results and doc list in parallel
+      const local = await getLocalStoreAsync();
+      if (local) {
+        // local FTS5 search + enrich with doc titles from PTS
+        const hits = local.search(q);
+        const allDocs = local.listDocs();
+        const docMap = new Map(allDocs.map((d) => [d.documentId, d]));
+        const seen = new Set<string>();
+        const results: SearchHit[] = [];
+        for (const hit of hits) {
+          if (seen.has(hit.documentId)) continue;
+          seen.add(hit.documentId);
+          const localDoc = docMap.get(hit.documentId);
+          const doc: Document = localDoc
+            ? toDocument(localDoc)
+            : { id: hit.id, title: hit.content.slice(0, 60) };
+          results.push({
+            doc,
+            snippet: hit.content.slice(0, 150).replace(/\n/g, " "),
+          });
+        }
+        return results; // return even if empty - don't fall through to API
+      }
+
+      // API fallback
       const [searchRes, docsRes] = await Promise.all([
         client.documents.search({ regexps: q }),
         client.documents.list({ fetchMetadata: true }),
       ]);
-
       const docMap = new Map<string, Document>();
-      for (const doc of docsRes.items) docMap.set(doc.id, doc);
+      for (const d of docsRes.items) docMap.set(d.id, d);
 
-      return searchRes.items.map((hit): EnrichedHit => {
-        const doc = docMap.get(hit.documentId);
+      return searchRes.items.map((hit): SearchHit => {
+        const d = docMap.get(hit.documentId);
         return {
-          ...hit,
-          docTitle: doc?.title ?? hit.documentId.slice(0, 8),
-          docDate: doc?.lastModifiedAt?.slice(0, 10) ?? "",
-          docLink: doc?.clickableLink,
+          doc: d ?? { id: hit.documentId, title: hit.documentId.slice(0, 8) },
+          snippet: hit.markdown.slice(0, 150).replace(/\n/g, " "),
         };
       });
     },
@@ -56,72 +76,75 @@ export default function Command() {
     <List
       isLoading={isLoading}
       onSearchTextChange={setQuery}
-      searchBarPlaceholder="Search Craft (regex)"
+      searchBarPlaceholder="Search Craft"
       throttle
     >
-      {data?.map((hit, i) => {
-        const snippet = hit.markdown.slice(0, 150).replace(/\n/g, " ");
-        return (
-          <List.Item
-            key={`${hit.documentId}-${i}`}
-            title={hit.docTitle}
-            subtitle={snippet}
-            icon={Icon.Document}
-            accessories={[{ text: hit.docDate }]}
-            actions={
-              <ActionPanel>
-                <Action
-                  title="Open in Craft"
-                  icon={Icon.AppWindow}
-                  onAction={async () => {
-                    const link =
-                      hit.docLink ?? (await client.deeplink(hit.documentId));
-                    await open(link);
-                  }}
-                />
-                <Action
-                  title="Copy Snippet"
-                  icon={Icon.Text}
-                  onAction={() => Clipboard.copy(hit.markdown)}
-                />
-                <Action
-                  title="Copy Full Markdown"
-                  icon={Icon.Download}
-                  shortcut={{ modifiers: ["cmd"], key: "return" }}
-                  onAction={async () => {
-                    await showToast({
-                      style: Toast.Style.Animated,
-                      title: "Fetching...",
-                    });
-                    try {
-                      const md = (await client.blocks.get(hit.documentId, {
+      {data?.map((hit, i) => (
+        <List.Item
+          key={`${hit.doc.id}-${i}`}
+          title={hit.doc.title}
+          subtitle={hit.snippet}
+          icon={Icon.Document}
+          accessories={[{ text: hit.doc.lastModifiedAt?.slice(0, 10) ?? "" }]}
+          actions={
+            <ActionPanel>
+              <Action
+                title="Open in Craft"
+                icon={Icon.AppWindow}
+                onAction={async () => {
+                  const link =
+                    hit.doc.clickableLink ??
+                    (await client.deeplink(hit.doc.id));
+                  await open(link);
+                }}
+              />
+              <Action
+                title="Copy Snippet"
+                icon={Icon.Text}
+                onAction={() => Clipboard.copy(hit.snippet)}
+              />
+              <Action
+                title="Copy Full Markdown"
+                icon={Icon.Download}
+                shortcut={{ modifiers: ["cmd"], key: "return" }}
+                onAction={async () => {
+                  await showToast({
+                    style: Toast.Style.Animated,
+                    title: "Fetching...",
+                  });
+                  try {
+                    // try local first
+                    const local = getLocalStore();
+                    let md = local?.getDocContent(hit.doc.id);
+                    if (!md) {
+                      md = (await client.blocks.get(hit.doc.id, {
                         format: "markdown",
                       })) as string;
-                      await Clipboard.copy(md);
-                      await showToast({
-                        style: Toast.Style.Success,
-                        title: "Copied markdown",
-                      });
-                    } catch (e) {
-                      await showToast({
-                        style: Toast.Style.Failure,
-                        title: "Fetch failed",
-                        message: (e as Error).message,
-                      });
                     }
-                  }}
-                />
-                <Action
-                  title="Copy Document ID"
-                  icon={Icon.CopyClipboard}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-                  onAction={() => Clipboard.copy(hit.documentId)}
-                />
-              </ActionPanel>
-            }
-          />
-        );
-      })}
+                    await Clipboard.copy(md);
+                    await showToast({
+                      style: Toast.Style.Success,
+                      title: "Copied markdown",
+                    });
+                  } catch (e) {
+                    await showToast({
+                      style: Toast.Style.Failure,
+                      title: "Fetch failed",
+                      message: (e as Error).message,
+                    });
+                  }
+                }}
+              />
+              <Action
+                title="Copy Document ID"
+                icon={Icon.CopyClipboard}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                onAction={() => Clipboard.copy(hit.doc.id)}
+              />
+            </ActionPanel>
+          }
+        />
+      ))}
     </List>
   );
 }

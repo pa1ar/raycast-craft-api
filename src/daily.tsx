@@ -1,13 +1,27 @@
-// Open Daily Note — no-view command, fetches today's daily note root and opens in Craft app
+// Open Daily Note - no-view command, tries local store first, falls back to API
 import { LaunchProps, open, showToast, Toast } from "@raycast/api";
-import { getClient } from "./client";
+import { getClient, getLocalStoreAsync } from "./client";
 
 export default async function Command(
   props: LaunchProps<{ arguments: { date?: string } }>,
 ) {
   const date = props.arguments.date?.trim() || "today";
-  const client = getClient();
   try {
+    // try local: find daily note + build deeplink without API
+    const local = await getLocalStoreAsync();
+    if (local) {
+      const blockId = local.findDailyNote(date);
+      if (blockId) {
+        const link = local.deeplink(blockId);
+        if (link) {
+          await open(link);
+          return;
+        }
+      }
+    }
+
+    // API fallback
+    const client = getClient();
     const root = (await client.blocks.getDaily(date, { maxDepth: 0 })) as any;
     const link = await client.deeplink(root.id);
     await open(link);

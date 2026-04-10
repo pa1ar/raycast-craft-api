@@ -30,6 +30,8 @@ declare namespace Preferences {
   export type Recent = ExtensionPreferences & {}
   /** Preferences accessible in the `fuzzy-open` command */
   export type FuzzyOpen = ExtensionPreferences & {}
+  /** Preferences accessible in the `daily-notes` command */
+  export type DailyNotes = ExtensionPreferences & {}
   /** Preferences accessible in the `tasks` command */
   export type Tasks = ExtensionPreferences & {}
   /** Preferences accessible in the `create-document` command */
@@ -64,6 +66,8 @@ declare namespace Arguments {
   export type Recent = {}
   /** Arguments passed to the `fuzzy-open` command */
   export type FuzzyOpen = {}
+  /** Arguments passed to the `daily-notes` command */
+  export type DailyNotes = {}
   /** Arguments passed to the `tasks` command */
   export type Tasks = {}
   /** Arguments passed to the `create-document` command */
