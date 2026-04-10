@@ -133,8 +133,8 @@
       "name": "whoami",
       "title": "Craft Space Info",
       "subtitle": "Craft API",
-      "description": "Show connected Craft space name and info",
-      "mode": "no-view",
+      "description": "Show connected space, API status, and local store diagnostics",
+      "mode": "view",
       "path": "src/whoami.tsx"
     }
   ],
