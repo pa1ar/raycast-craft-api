@@ -72,6 +72,68 @@ export class LocalStore {
     return `craftdocs://open?blockId=${blockId}&spaceId=${this.spaceId}`;
   }
 
+  // fast list of recent daily notes - uses file mtime to avoid reading all PTS files
+  // returns up to `limit` daily notes sorted by modified date (most recent first)
+  listDailyNotes(limit = 14): LocalDoc[] {
+    if (!this.ptsDir) return [];
+
+    try {
+      // stat all PTS files, sort by mtime descending
+      const ptsDir = this.ptsDir;
+      const files = readdirSync(ptsDir)
+        .filter((f) => f.startsWith("document_") && f.endsWith(".json"))
+        .map((f) => {
+          try {
+            return { file: f, mtime: statSync(join(ptsDir, f)).mtimeMs };
+          } catch {
+            return null;
+          }
+        })
+        .filter((x): x is { file: string; mtime: number } => x !== null)
+        .sort((a, b) => b.mtime - a.mtime);
+
+      // build id map for reverse lookup (one SQLite call)
+      const idMapResult = this.db.exec(
+        `SELECT id, documentId FROM BlockSearch WHERE entityType = 'document'`,
+      );
+      const docIdToEntityId = new Map<string, string>();
+      if (idMapResult.length) {
+        const UUID_RE =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        for (const row of idMapResult[0].values) {
+          const id = row[0] as string;
+          if (UUID_RE.test(id)) {
+            docIdToEntityId.set(row[1] as string, id);
+          }
+        }
+      }
+
+      // read files in mtime order, collect daily notes until we have `limit`
+      const results: LocalDoc[] = [];
+      for (const { file } of files) {
+        if (results.length >= limit) break;
+        const documentId = file.replace("document_", "").replace(".json", "");
+        const pts = this.readPts(documentId);
+        if (!pts?.isDailyNote) continue;
+        const entityId = docIdToEntityId.get(documentId);
+        if (!entityId) continue;
+        results.push({
+          id: entityId,
+          documentId,
+          title: pts.title ?? "",
+          markdownContent: pts.markdownContent ?? "",
+          isDailyNote: true,
+          tags: pts.tags ?? [],
+          modified: nsdateToIso(pts.modified ?? 0),
+          contentHash: pts.contentHash ?? "",
+        });
+      }
+      return results;
+    } catch {
+      return [];
+    }
+  }
+
   // find daily note block ID for a given date
   findDailyNote(dateStr: string): string | null {
     // resolve relative dates
@@ -181,6 +243,14 @@ export class LocalStore {
     if (!docId) return null;
     const pts = this.readPts(docId);
     return pts?.markdownContent ?? null;
+  }
+
+  // quick contentHash lookup for cache invalidation
+  getContentHash(entityId: string): string | null {
+    const docId = this.resolveId(entityId);
+    if (!docId) return null;
+    const pts = this.readPts(docId);
+    return pts?.contentHash ?? null;
   }
 
   close(): void {

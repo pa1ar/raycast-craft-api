@@ -1,9 +1,9 @@
 // reusable document list item with standard actions
+// primary action: Preview (Enter); secondary: Open in Craft (Shift+Enter)
 import {
   List,
   ActionPanel,
   Action,
-  Detail,
   Icon,
   open,
   Clipboard,
@@ -11,10 +11,10 @@ import {
   Toast,
 } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import type { CraftClient } from "@1ar/craft-cli/lib";
-import type { Document, BlockLink } from "@1ar/craft-cli/lib";
+import type { CraftClient, Document, BlockLink } from "@1ar/craft-cli/lib";
 import type { ReactNode } from "react";
 import { getLocalStoreAsync } from "../client";
+import { DocPreview } from "./doc-preview";
 
 interface Props {
   doc: Document;
@@ -22,20 +22,8 @@ interface Props {
   subtitle?: string;
   icon?: Icon;
   extraActions?: ReactNode;
-}
-
-function DocPreview({ docId, client }: { docId: string; client: CraftClient }) {
-  const { data, isLoading } = useCachedPromise(
-    async (id: string) => {
-      // try local first (~0.7ms vs ~4.5s API)
-      const local = await getLocalStoreAsync();
-      const content = local?.getDocContent(id);
-      if (content) return content;
-      return (await client.blocks.get(id, { format: "markdown" })) as string;
-    },
-    [docId],
-  );
-  return <Detail isLoading={isLoading} markdown={data ?? ""} />;
+  /** Toggle callback for showing/hiding the detail panel. If provided, renders a Toggle Details action. */
+  onToggleDetail?: () => void;
 }
 
 function BacklinksList({
@@ -90,6 +78,7 @@ export function DocListItem({
   subtitle,
   icon,
   extraActions,
+  onToggleDetail,
 }: Props) {
   const sub = subtitle ?? doc.lastModifiedAt?.slice(0, 10) ?? "";
 
@@ -99,21 +88,50 @@ export function DocListItem({
       title={doc.title}
       subtitle={sub}
       icon={icon ?? Icon.Document}
+      detail={
+        <List.Item.Detail
+          metadata={
+            <List.Item.Detail.Metadata>
+              <List.Item.Detail.Metadata.Label title="Title" text={doc.title} />
+              <List.Item.Detail.Metadata.Label
+                title="Document ID"
+                text={doc.id}
+              />
+              {doc.lastModifiedAt && (
+                <List.Item.Detail.Metadata.Label
+                  title="Modified"
+                  text={doc.lastModifiedAt.slice(0, 10)}
+                />
+              )}
+              {doc.createdAt && (
+                <List.Item.Detail.Metadata.Label
+                  title="Created"
+                  text={doc.createdAt.slice(0, 10)}
+                />
+              )}
+            </List.Item.Detail.Metadata>
+          }
+        />
+      }
       actions={
         <ActionPanel>
-          <Action
-            title="Open in Craft"
-            icon={Icon.AppWindow}
-            onAction={async () => {
-              const link = doc.clickableLink ?? (await client.deeplink(doc.id));
-              await open(link);
-            }}
-          />
           <Action.Push
             title="Preview"
             icon={Icon.Eye}
-            target={<DocPreview docId={doc.id} client={client} />}
-            shortcut={{ modifiers: ["cmd"], key: "p" }}
+            target={<DocPreview doc={doc} client={client} />}
+          />
+          <Action
+            title="Open in Craft"
+            icon={Icon.AppWindow}
+            shortcut={{ modifiers: ["shift"], key: "return" }}
+            onAction={async () => {
+              const local = await getLocalStoreAsync();
+              const link =
+                local?.deeplink(doc.id) ??
+                doc.clickableLink ??
+                (await client.deeplink(doc.id));
+              await open(link);
+            }}
           />
           <Action.Push
             title="Show Backlinks"
@@ -121,7 +139,32 @@ export function DocListItem({
             target={<BacklinksList docId={doc.id} client={client} />}
             shortcut={{ modifiers: ["cmd"], key: "b" }}
           />
+          {onToggleDetail && (
+            <Action
+              title="Toggle Details"
+              icon={Icon.Sidebar}
+              shortcut={{ modifiers: ["cmd"], key: "i" }}
+              onAction={onToggleDetail}
+            />
+          )}
           {extraActions}
+          <Action
+            title="Copy Deeplink"
+            icon={Icon.Link}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
+            onAction={async () => {
+              const local = await getLocalStoreAsync();
+              const link =
+                local?.deeplink(doc.id) ??
+                doc.clickableLink ??
+                (await client.deeplink(doc.id));
+              await Clipboard.copy(link);
+              await showToast({
+                style: Toast.Style.Success,
+                title: "Copied deeplink",
+              });
+            }}
+          />
           <Action
             title="Copy Document ID"
             icon={Icon.CopyClipboard}

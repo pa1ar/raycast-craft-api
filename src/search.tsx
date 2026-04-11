@@ -14,6 +14,7 @@ import {
 import { useCachedPromise } from "@raycast/utils";
 import { getClient, getLocalStoreAsync } from "./client";
 import { toDocument } from "./local-store";
+import { DocPreview } from "./components/doc-preview";
 import type { Document } from "@1ar/craft-cli/lib";
 
 interface SearchHit {
@@ -23,6 +24,7 @@ interface SearchHit {
 
 export default function Command() {
   const [query, setQuery] = useState("");
+  const [showDetail, setShowDetail] = useState(false);
   const client = getClient();
 
   const { data, isLoading } = useCachedPromise(
@@ -49,7 +51,7 @@ export default function Command() {
             snippet: hit.content.slice(0, 150).replace(/\n/g, " "),
           });
         }
-        return results; // return even if empty - don't fall through to API
+        return results;
       }
 
       // API fallback
@@ -75,6 +77,7 @@ export default function Command() {
   return (
     <List
       isLoading={isLoading}
+      isShowingDetail={showDetail}
       onSearchTextChange={setQuery}
       searchBarPlaceholder="Search Craft"
       throttle
@@ -83,20 +86,61 @@ export default function Command() {
         <List.Item
           key={`${hit.doc.id}-${i}`}
           title={hit.doc.title}
-          subtitle={hit.snippet}
+          subtitle={showDetail ? undefined : hit.snippet}
           icon={Icon.Document}
-          accessories={[{ text: hit.doc.lastModifiedAt?.slice(0, 10) ?? "" }]}
+          accessories={
+            showDetail
+              ? undefined
+              : [{ text: hit.doc.lastModifiedAt?.slice(0, 10) ?? "" }]
+          }
+          detail={
+            <List.Item.Detail
+              markdown={hit.snippet}
+              metadata={
+                <List.Item.Detail.Metadata>
+                  <List.Item.Detail.Metadata.Label
+                    title="Title"
+                    text={hit.doc.title}
+                  />
+                  <List.Item.Detail.Metadata.Label
+                    title="Document ID"
+                    text={hit.doc.id}
+                  />
+                  {hit.doc.lastModifiedAt && (
+                    <List.Item.Detail.Metadata.Label
+                      title="Modified"
+                      text={hit.doc.lastModifiedAt.slice(0, 10)}
+                    />
+                  )}
+                </List.Item.Detail.Metadata>
+              }
+            />
+          }
           actions={
             <ActionPanel>
+              <Action.Push
+                title="Preview"
+                icon={Icon.Eye}
+                target={<DocPreview doc={hit.doc} client={client} />}
+              />
               <Action
                 title="Open in Craft"
                 icon={Icon.AppWindow}
+                shortcut={{ modifiers: ["shift"], key: "return" }}
                 onAction={async () => {
+                  const local = await getLocalStoreAsync();
                   const link =
+                    local?.deeplink(hit.doc.id) ??
                     hit.doc.clickableLink ??
                     (await client.deeplink(hit.doc.id));
                   await open(link);
                 }}
+              />
+              <Action
+                title="Toggle Details"
+                icon={Icon.Sidebar}
+                shortcut={{ modifiers: ["cmd"], key: "i" }}
+                onAction={() => setShowDetail((v) => !v)}
               />
               <Action
                 title="Copy Snippet"
@@ -113,8 +157,7 @@ export default function Command() {
                     title: "Fetching...",
                   });
                   try {
-                    // try local first
-                    const local = getLocalStore();
+                    const local = await getLocalStoreAsync();
                     let md = local?.getDocContent(hit.doc.id);
                     if (!md) {
                       md = (await client.blocks.get(hit.doc.id, {
@@ -133,6 +176,23 @@ export default function Command() {
                       message: (e as Error).message,
                     });
                   }
+                }}
+              />
+              <Action
+                title="Copy Deeplink"
+                icon={Icon.Link}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "l" }}
+                onAction={async () => {
+                  const local = await getLocalStoreAsync();
+                  const link =
+                    local?.deeplink(hit.doc.id) ??
+                    hit.doc.clickableLink ??
+                    (await client.deeplink(hit.doc.id));
+                  await Clipboard.copy(link);
+                  await showToast({
+                    style: Toast.Style.Success,
+                    title: "Copied deeplink",
+                  });
                 }}
               />
               <Action

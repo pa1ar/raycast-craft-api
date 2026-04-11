@@ -1,4 +1,5 @@
 // Recent Documents - local store for speed, API fallback
+import { useState } from "react";
 import { List } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { getClient, getLocalStoreAsync } from "./client";
@@ -8,6 +9,7 @@ import { toDocument } from "./local-store";
 export default function Command() {
   const client = getClient();
   const since = isoDaysAgo(14);
+  const [showDetail, setShowDetail] = useState(false);
 
   const { data, isLoading } = useCachedPromise(async () => {
     const local = await getLocalStoreAsync();
@@ -32,9 +34,18 @@ export default function Command() {
   }, []);
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Filter recent documents">
+    <List
+      isLoading={isLoading}
+      isShowingDetail={showDetail}
+      searchBarPlaceholder="Filter recent documents"
+    >
       {data?.map((doc) => (
-        <DocListItem key={doc.id} doc={doc} client={client} />
+        <DocListItem
+          key={doc.id}
+          doc={doc}
+          client={client}
+          onToggleDetail={() => setShowDetail((v) => !v)}
+        />
       ))}
     </List>
   );
