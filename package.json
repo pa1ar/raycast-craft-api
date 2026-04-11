@@ -138,6 +138,68 @@
       "path": "src/whoami.tsx"
     }
   ],
+  "tools": [
+    {
+      "name": "search-craft",
+      "title": "Search Craft",
+      "description": "Search across every document in the user's Craft vault. Returns documents matching the query with title, snippet, and metadata. Uses local SQLite FTS5 for instant results."
+    },
+    {
+      "name": "get-document",
+      "title": "Get Document",
+      "description": "Fetch the full markdown content of a Craft document by ID or title. Reads from local PlainTextSearch JSON for instant results."
+    },
+    {
+      "name": "list-documents",
+      "title": "List Documents",
+      "description": "List documents in the user's Craft vault with optional filters (modifiedAfter, isDailyNote, tag). Sorted by last modified."
+    },
+    {
+      "name": "list-daily-notes",
+      "title": "List Daily Notes",
+      "description": "List daily notes from the user's Craft vault, sorted by date. Use get-document to read the content of a specific daily note."
+    },
+    {
+      "name": "create-document",
+      "title": "Create Document",
+      "description": "Create a new document in the user's Craft vault. Returns the new document's ID and a deeplink."
+    },
+    {
+      "name": "add-task",
+      "title": "Add Task",
+      "description": "Add a task to the user's Craft vault. Defaults to inbox, but can also add to a daily note or specific document."
+    },
+    {
+      "name": "append-to-daily",
+      "title": "Append to Daily Note",
+      "description": "Append markdown content to a daily note (today by default)."
+    },
+    {
+      "name": "update-task",
+      "title": "Update Task",
+      "description": "Update an existing task: change state (done/canceled), reschedule, or edit text. Get task IDs from list-tasks."
+    },
+    {
+      "name": "list-folders",
+      "title": "List Folders",
+      "description": "List all folders in the user's Craft vault as a tree. Use returned folder IDs with create-document."
+    },
+    {
+      "name": "list-tasks",
+      "title": "List Tasks",
+      "description": "List tasks by scope (inbox/active/upcoming/logbook/document). Returns task IDs that can be used with update-task."
+    },
+    {
+      "name": "get-backlinks",
+      "title": "Get Backlinks",
+      "description": "Find documents that link to a specific Craft document via title-based search."
+    },
+    {
+      "name": "get-space-info",
+      "title": "Get Space Info",
+      "description": "Get diagnostic information about the connected Craft space: API status, local store availability, space name, ID, timezone, document count."
+    }
+  ],
   "preferences": [
     {
       "name": "craftUrl",
