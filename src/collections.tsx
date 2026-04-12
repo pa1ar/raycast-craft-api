@@ -1,7 +1,9 @@
 // Browse Collections - list collections, drill into items
+// Enter = preview item content; Shift+Enter = open in Craft
 import { List, ActionPanel, Action, Icon, open, Clipboard } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import { getClient } from "./client";
+import { getClient, getLocalStoreAsync } from "./client";
+import { DocPreview } from "./components/doc-preview";
 import type {
   CraftClient,
   Collection,
@@ -30,6 +32,16 @@ function CollectionItems({
       searchBarPlaceholder="Filter items"
     >
       {data?.map((item: CollectionItem) => {
+        // Craft collection items use the schema's first property as
+        // the display field (e.g. "service" instead of "title").
+        // Find the first string value that isn't a system key.
+        const systemKeys = new Set(["id", "properties", "content"]);
+        const titleEntry = Object.entries(item).find(
+          ([k, v]) => !systemKeys.has(k) && typeof v === "string",
+        );
+        const displayTitle =
+          item.title ?? titleEntry?.[1] ?? item.id.slice(0, 8);
+
         const props = item.properties ?? {};
         const propSummary = Object.entries(props)
           .filter(([, v]) => v !== null && v !== undefined && v !== "")
@@ -39,15 +51,38 @@ function CollectionItems({
         return (
           <List.Item
             key={item.id}
-            title={item.title}
+            title={displayTitle as string}
             subtitle={propSummary.slice(0, 80)}
             icon={Icon.Dot}
             actions={
               <ActionPanel>
+                <Action.Push
+                  title="Preview"
+                  icon={Icon.Eye}
+                  target={
+                    <DocPreview
+                      doc={{ id: item.id, title: displayTitle as string }}
+                      client={client}
+                    />
+                  }
+                />
+                <Action
+                  title="Open in Craft"
+                  icon={Icon.AppWindow}
+                  shortcut={{ modifiers: ["shift"], key: "return" }}
+                  onAction={async () => {
+                    const local = await getLocalStoreAsync();
+                    const link =
+                      local?.deeplink(item.id) ??
+                      (await client.deeplink(item.id));
+                    await open(link);
+                  }}
+                />
                 {collection.documentId && (
                   <Action
                     title="Open Parent Document"
                     icon={Icon.AppWindow}
+                    shortcut={{ modifiers: ["cmd"], key: "return" }}
                     onAction={async () => {
                       const link = await client.deeplink(
                         collection.documentId!,

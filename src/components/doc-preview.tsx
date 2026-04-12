@@ -1,5 +1,6 @@
-// DocPreview - Detail view showing a document's markdown with metadata panel
-// fetches via API with maxDepth=1, strips Craft's XML wrapper tags for clean rendering
+// DocPreview - Detail view showing a document's markdown
+// local PTS is source of truth (instant, clean plain markdown)
+// API fallback only kicks in when local store is unavailable or doc not yet synced
 import {
   Detail,
   ActionPanel,
@@ -9,7 +10,6 @@ import {
   Clipboard,
   showToast,
   Toast,
-  Cache,
 } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import type { CraftClient, Document } from "@1ar/craft-cli/lib";
@@ -20,57 +20,32 @@ interface Props {
   client: CraftClient;
 }
 
-// persistent cache keyed by "{docId}:{contentHash}"
-// since contentHash changes when content changes, cached entries are always fresh
-const previewCache = new Cache({ namespace: "doc-preview" });
-
-// strip Craft's XML wrapper and inline formatting tags
-// keeps markdown content and inner text of tags like <highlight>, <gradient>, <callout>
-function cleanMarkdown(raw: string): string {
-  // extract content between <content>...</content> if present
+// strip Craft API's XML wrapper tags. only used on the API fallback path;
+// PTS content is already clean markdown with no wrappers.
+function cleanApiMarkdown(raw: string): string {
   const contentMatch = raw.match(/<content>([\s\S]*?)<\/content>/);
   let body = contentMatch ? contentMatch[1] : raw;
-
-  // strip <page ...> and <pageTitle>...</pageTitle> if still present
   body = body.replace(/<page[^>]*>/g, "");
   body = body.replace(/<\/page>/g, "");
   body = body.replace(/<pageTitle>[\s\S]*?<\/pageTitle>/g, "");
-
-  // strip inline formatting tags but keep their text content
-  // e.g. <highlight color="..."><gradient kind="1">text</gradient></highlight> -> text
   body = body.replace(/<\/?(?:highlight|gradient|callout|caption)[^>]*>/g, "");
-
   return body.trim();
 }
 
 export function DocPreview({ doc, client }: Props) {
   const { data, isLoading } = useCachedPromise(
     async (id: string) => {
-      // cache key: local contentHash ensures freshness across content changes
+      // local PTS is source of truth - instant read (~1ms), already clean markdown
       const local = await getLocalStoreAsync();
-      const contentHash = local?.getContentHash(id);
-      const cacheKey = contentHash ? `${id}:${contentHash}` : null;
+      const localContent = local?.getDocContent(id);
+      if (localContent !== null && localContent !== undefined)
+        return localContent;
 
-      // cache hit: instant
-      if (cacheKey) {
-        const cached = previewCache.get(cacheKey);
-        if (cached) return cleanMarkdown(cached);
-      }
-
-      // cache miss: fetch shallow markdown from API (maxDepth=1 = top-level blocks only)
-      try {
-        const raw = (await client.blocks.get(id, {
-          format: "markdown",
-          maxDepth: 1,
-        })) as string;
-        if (cacheKey) previewCache.set(cacheKey, raw);
-        return cleanMarkdown(raw);
-      } catch {
-        // API failed (offline, bad creds, etc.) - fall back to local full content
-        const fullLocal = local?.getDocContent(id);
-        if (fullLocal) return fullLocal;
-        throw new Error("Preview unavailable (no local data and API failed)");
-      }
+      // API fallback: only when local store missing or doc not yet synced
+      const raw = (await client.blocks.get(id, {
+        format: "markdown",
+      })) as string;
+      return cleanApiMarkdown(raw);
     },
     [doc.id],
   );
@@ -108,17 +83,14 @@ export function DocPreview({ doc, client }: Props) {
             icon={Icon.Download}
             shortcut={{ modifiers: ["cmd"], key: "return" }}
             onAction={async () => {
-              // fetch FULL content (not the shallow preview).
-              // prefer local PTS markdownContent (fast, full recursive),
-              // fall back to API without maxDepth for complete tree.
               await showToast({
                 style: Toast.Style.Animated,
-                title: "Fetching full markdown...",
+                title: "Fetching...",
               });
               try {
                 const local = await getLocalStoreAsync();
                 let md = local?.getDocContent(doc.id);
-                if (!md) {
+                if (md === null || md === undefined) {
                   md = (await client.blocks.get(doc.id, {
                     format: "markdown",
                   })) as string;
@@ -126,7 +98,7 @@ export function DocPreview({ doc, client }: Props) {
                 await Clipboard.copy(md);
                 await showToast({
                   style: Toast.Style.Success,
-                  title: "Copied full markdown",
+                  title: "Copied markdown",
                 });
               } catch (e) {
                 await showToast({

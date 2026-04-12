@@ -3,8 +3,15 @@ import { List, ActionPanel, Action, Icon } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { getClient } from "./client";
 import { DocListItem } from "./components/doc-list-item";
-import type { CraftClient } from "@1ar/craft-cli/lib";
-import type { Folder } from "@1ar/craft-cli/lib";
+import type { CraftClient, Folder } from "@1ar/craft-cli/lib";
+
+// virtual locations returned by folders.list have non-UUID IDs
+const VIRTUAL_LOCATIONS = new Set([
+  "unsorted",
+  "trash",
+  "templates",
+  "daily_notes",
+]);
 
 function FolderContents({
   folder,
@@ -15,10 +22,17 @@ function FolderContents({
 }) {
   const { data, isLoading } = useCachedPromise(
     async (folderId: string) => {
-      const res = await client.documents.list({
-        folderId,
-        fetchMetadata: true,
-      });
+      const opts = VIRTUAL_LOCATIONS.has(folderId)
+        ? {
+            location: folderId as
+              | "unsorted"
+              | "trash"
+              | "templates"
+              | "daily_notes",
+            fetchMetadata: true,
+          }
+        : { folderId, fetchMetadata: true };
+      const res = await client.documents.list(opts);
       return res.items;
     },
     [folder.id],
