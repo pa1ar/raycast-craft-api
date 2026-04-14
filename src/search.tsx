@@ -1,6 +1,7 @@
 // Search Craft - local FTS5 for speed, API fallback
 // displays document title + matching snippet
-import { useState } from "react";
+// recent searches persisted via LocalStorage
+import { useState, useEffect } from "react";
 import {
   List,
   ActionPanel,
@@ -10,12 +11,44 @@ import {
   open,
   showToast,
   Toast,
+  LocalStorage,
 } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { getClient, getLocalStoreAsync } from "./client";
 import { toDocument } from "./local-store";
 import { DocPreview } from "./components/doc-preview";
 import type { Document } from "@1ar/craft-cli/lib";
+
+const RECENT_KEY = "recent-searches";
+const MAX_RECENT = 10;
+
+async function getRecentSearches(): Promise<string[]> {
+  const raw = await LocalStorage.getItem<string>(RECENT_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+async function addRecentSearch(query: string): Promise<void> {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const recent = await getRecentSearches();
+  const updated = [trimmed, ...recent.filter((q) => q !== trimmed)].slice(
+    0,
+    MAX_RECENT,
+  );
+  await LocalStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+}
+
+async function removeRecentSearch(query: string): Promise<void> {
+  const recent = await getRecentSearches();
+  await LocalStorage.setItem(
+    RECENT_KEY,
+    JSON.stringify(recent.filter((q) => q !== query)),
+  );
+}
+
+async function clearRecentSearches(): Promise<void> {
+  await LocalStorage.removeItem(RECENT_KEY);
+}
 
 interface SearchHit {
   doc: Document;
@@ -25,7 +58,12 @@ interface SearchHit {
 export default function Command() {
   const [query, setQuery] = useState("");
   const [showDetail, setShowDetail] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const client = getClient();
+
+  useEffect(() => {
+    getRecentSearches().then(setRecentSearches);
+  }, []);
 
   const { data, isLoading } = useCachedPromise(
     async (q: string) => {
@@ -51,6 +89,10 @@ export default function Command() {
             snippet: hit.content.slice(0, 150).replace(/\n/g, " "),
           });
         }
+        if (results.length > 0) {
+          await addRecentSearch(q);
+          getRecentSearches().then(setRecentSearches);
+        }
         return results;
       }
 
@@ -62,17 +104,24 @@ export default function Command() {
       const docMap = new Map<string, Document>();
       for (const d of docsRes.items) docMap.set(d.id, d);
 
-      return searchRes.items.map((hit): SearchHit => {
+      const results = searchRes.items.map((hit): SearchHit => {
         const d = docMap.get(hit.documentId);
         return {
           doc: d ?? { id: hit.documentId, title: hit.documentId.slice(0, 8) },
           snippet: hit.markdown.slice(0, 150).replace(/\n/g, " "),
         };
       });
+      if (results.length > 0) {
+        await addRecentSearch(q);
+        getRecentSearches().then(setRecentSearches);
+      }
+      return results;
     },
     [query],
     { keepPreviousData: true },
   );
+
+  const showRecent = !query.trim() && recentSearches.length > 0;
 
   return (
     <List
@@ -82,6 +131,44 @@ export default function Command() {
       searchBarPlaceholder="Search Craft"
       throttle
     >
+      {showRecent && (
+        <List.Section title="Recent Searches">
+          {recentSearches.map((q) => (
+            <List.Item
+              key={q}
+              title={q}
+              icon={Icon.Clock}
+              actions={
+                <ActionPanel>
+                  <Action
+                    title="Search Again"
+                    icon={Icon.MagnifyingGlass}
+                    onAction={() => setQuery(q)}
+                  />
+                  <Action
+                    title="Remove from Recent"
+                    icon={Icon.Trash}
+                    shortcut={{ modifiers: ["ctrl"], key: "x" }}
+                    onAction={async () => {
+                      await removeRecentSearch(q);
+                      setRecentSearches(await getRecentSearches());
+                    }}
+                  />
+                  <Action
+                    title="Clear All Recent"
+                    icon={Icon.Trash}
+                    shortcut={{ modifiers: ["ctrl", "shift"], key: "x" }}
+                    onAction={async () => {
+                      await clearRecentSearches();
+                      setRecentSearches([]);
+                    }}
+                  />
+                </ActionPanel>
+              }
+            />
+          ))}
+        </List.Section>
+      )}
       {data?.map((hit, i) => (
         <List.Item
           key={`${hit.doc.id}-${i}`}
