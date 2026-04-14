@@ -127,6 +127,7 @@ export default function Command() {
     <List
       isLoading={isLoading}
       isShowingDetail={showDetail}
+      searchText={query}
       onSearchTextChange={setQuery}
       searchBarPlaceholder="Search Craft"
       throttle
