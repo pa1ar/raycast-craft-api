@@ -14,6 +14,11 @@ type FolderNode = {
  * folder ID to create a document in (pass the returned folderId to
  * create-document).
  *
+ * The response may include virtual locations with folderId "unsorted" or
+ * "templates" - these are sentinels, not real folders. They can still be
+ * passed to create-document, which will route them correctly. To create a
+ * document in the default inbox, simply omit the folderId argument.
+ *
  * Folders are not stored in the local data stores, so this tool always
  * calls the Craft API.
  */

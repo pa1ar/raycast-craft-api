@@ -29,13 +29,13 @@ function parseNoteTitle(title: string): string | null {
 /**
  * List daily notes from the user's Craft vault.
  *
- * Use this tool when the user asks about their daily notes, journal entries,
- * or wants to see what they wrote on a specific day.
- *
- * Results sorted by the daily note's actual date (not modification time), most
- * recent first. The `date` field is the daily note's calendar date, parsed
- * from the document title. To read the content of a specific daily note, call
- * get-document with the documentId.
+ * Defaults: limit → 14.
+ * Example: { since: "2026-04-01" } returns April daily notes.
+ * Use this when: user asks about daily notes, journal entries, or wants a
+ * list sorted by calendar date.
+ * DO NOT use this to: search note content (use search-craft), read a specific
+ * daily note (use get-document with the returned documentId), or append to
+ * today's daily note (use append-to-daily).
  */
 export default async function tool({
   limit = 14,

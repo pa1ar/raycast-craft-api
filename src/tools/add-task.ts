@@ -44,13 +44,16 @@ type AddTaskResult = {
 };
 
 /**
- * Add a task to the user's Craft vault.
+ * Add a task (checkbox item) to the user's Craft vault.
  *
- * By default, adds to the task inbox. Can also add directly to a daily note
- * or a specific document.
- *
- * Use this when the user wants to capture a todo, add a task, remind
- * themselves of something, or create a checkbox item.
+ * Defaults: to → "inbox". date → "today" (only matters when to="daily").
+ * Example: { markdown: "call accountant" } adds to inbox.
+ * Use this when: user wants to capture a todo, add a task, or create a
+ * checkbox item.
+ * DO NOT use this to: write the body of a new document (use create-document
+ * with content), append general text to a daily note (use append-to-daily),
+ * or append text to an existing doc (use append-to-document). A task is a
+ * structured checkbox block, not a prose paragraph.
  */
 export default async function tool({
   markdown,

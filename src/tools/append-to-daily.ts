@@ -21,11 +21,14 @@ type AppendResult = {
 };
 
 /**
- * Append markdown content to a daily note in Craft.
+ * Append markdown content to the end of a daily note in Craft.
  *
- * Use this when the user wants to add a thought, observation, or note to
- * their daily log/journal. The content is appended at the end of the daily
- * note.
+ * Defaults: date → "today".
+ * Example: { markdown: "quick thought" } appends to today's daily note.
+ * Use this when: user wants to add a thought / observation / log entry to
+ * their daily note or journal.
+ * DO NOT use this to: append to a non-daily document (use append-to-document),
+ * add a task (use add-task), or create a new doc (use create-document).
  */
 export default async function tool({
   markdown,

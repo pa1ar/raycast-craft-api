@@ -15,13 +15,14 @@ type BacklinkResult = {
 };
 
 /**
- * Find backlinks to a Craft document - other documents that reference this one.
+ * Find backlinks to a Craft document - other docs that reference this one.
  *
- * Uses a title-based search (fast, covers most cases). Enriches results with
- * source document titles from local data when available.
- *
- * Use this when the user asks "what links to X", "where is this referenced",
- * or wants to find the connections around a specific note.
+ * Defaults: none.
+ * Example: { documentId: "b2bb..." } returns sources linking to this doc.
+ * Use this when: user asks "what links to X", "where is this referenced", or
+ * wants to explore connections backward through the graph.
+ * DO NOT use this to: find links going OUT of a doc (use get-outgoing-links),
+ * or search content (use search-craft).
  */
 export default async function tool({
   documentId,

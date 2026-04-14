@@ -29,8 +29,12 @@ type TaskSummary = {
 /**
  * List tasks from the user's Craft vault by scope.
  *
- * Use this when the user asks about their tasks, todos, or wants to know
- * what's on their plate. Returns task IDs that can be used with update-task.
+ * Defaults: none - scope is required.
+ * Example: { scope: "active" } returns in-progress tasks.
+ * Use this when: user asks about tasks, todos, or what's on their plate.
+ * Returns task IDs for update-task / delete-tasks.
+ * DO NOT use this to: list documents (use list-documents), list collections
+ * (use list-collections), or search content (use search-craft).
  */
 export default async function tool({
   scope,

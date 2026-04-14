@@ -162,7 +162,97 @@
     {
       "name": "create-document",
       "title": "Create Document",
-      "description": "Create a new document in the user's Craft vault. Returns the new document's ID and a deeplink."
+      "description": "Create a new document in the user's Craft vault with optional markdown body. Defaults to unsorted; no folder lookup needed. Returns the new document's ID and a deeplink."
+    },
+    {
+      "name": "append-to-document",
+      "title": "Append to Document",
+      "description": "Append markdown content to the end of an existing document (any page, not just daily notes)."
+    },
+    {
+      "name": "update-block",
+      "title": "Update Block (AI)",
+      "description": "Edit a single block's markdown content in place. Advanced: requires a block ID. Children are preserved."
+    },
+    {
+      "name": "insert-blocks",
+      "title": "Insert Blocks (AI)",
+      "description": "Insert markdown at the start or end of a page or daily note. Advanced: requires pageId or date."
+    },
+    {
+      "name": "delete-blocks",
+      "title": "Delete Blocks (AI)",
+      "description": "Delete blocks by ID. Destructive: requires confirm=true."
+    },
+    {
+      "name": "delete-document",
+      "title": "Delete Document",
+      "description": "Delete one or more documents by ID. Destructive: requires confirm=true."
+    },
+    {
+      "name": "move-document",
+      "title": "Move Document",
+      "description": "Move documents to a different folder, or to the unsorted/templates virtual location."
+    },
+    {
+      "name": "list-collections",
+      "title": "List Collections",
+      "description": "List collections (database-like blocks) in the user's Craft vault, optionally scoped to a document."
+    },
+    {
+      "name": "get-collection-items",
+      "title": "Get Collection Items",
+      "description": "List items (rows) inside a Craft collection with their titles and property values."
+    },
+    {
+      "name": "add-collection-item",
+      "title": "Add Collection Item",
+      "description": "Add a new item (row) to a Craft collection with a title and optional properties."
+    },
+    {
+      "name": "update-collection-item",
+      "title": "Update Collection Item",
+      "description": "Update the title or properties of a collection item."
+    },
+    {
+      "name": "delete-collection-items",
+      "title": "Delete Collection Items",
+      "description": "Delete items (rows) from a Craft collection. Destructive: requires confirm=true."
+    },
+    {
+      "name": "get-collection-schema",
+      "title": "Get Collection Schema (AI)",
+      "description": "Fetch a collection's schema (property keys, types, options). Advanced: useful before add-collection-item."
+    },
+    {
+      "name": "create-folder",
+      "title": "Create Folder",
+      "description": "Create a folder in the Craft vault, optionally under a parent folder."
+    },
+    {
+      "name": "delete-folder",
+      "title": "Delete Folder",
+      "description": "Delete folders by ID. Destructive: requires confirm=true."
+    },
+    {
+      "name": "move-folder",
+      "title": "Move Folder",
+      "description": "Move folders to a different parent, or to root."
+    },
+    {
+      "name": "delete-tasks",
+      "title": "Delete Tasks",
+      "description": "Delete tasks by ID. Destructive: requires confirm=true. Use update-task to mark done/canceled instead of deleting."
+    },
+    {
+      "name": "search-in-document",
+      "title": "Search in Document (AI)",
+      "description": "Search within a single Craft document by regex pattern. Returns matching block IDs and markdown."
+    },
+    {
+      "name": "get-outgoing-links",
+      "title": "Get Outgoing Links",
+      "description": "Extract all outgoing block:// link references from a Craft document."
     },
     {
       "name": "add-task",

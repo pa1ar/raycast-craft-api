@@ -23,14 +23,12 @@ type DocumentResult = {
 /**
  * Fetch the full markdown content of a Craft document.
  *
- * Reads from the local PlainTextSearch JSON file for instant results (~1ms)
- * when Craft is installed locally. Falls back to the Craft API otherwise.
- *
- * If the input is a title (not a UUID), this tool first searches for the
- * document by title, then returns the top match.
- *
- * Use this tool when the user asks to read, show, display, or retrieve the
- * content of a specific document they've already identified.
+ * Defaults: none - id is required. UUID or title accepted (title resolves
+ * via local title match, then fuzzy).
+ * Example: { id: "b2bb-..." } or { id: "Weekly Review" }.
+ * Use this when: user asks to read / show / display the content of a doc.
+ * DO NOT use this to: list docs (use list-documents), search full-text
+ * (use search-craft), or find links within a doc (use get-outgoing-links).
  */
 export default async function tool({
   id,

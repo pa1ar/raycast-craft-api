@@ -15,6 +15,11 @@ let localPromise: Promise<LocalStore | null> | null = null;
 export function getClient(): CraftClient {
   if (cachedClient) return cachedClient;
   const prefs = getPreferenceValues<Preferences>();
+  if (!prefs.craftUrl || !prefs.craftKey) {
+    throw new Error(
+      "Craft API URL and key are not configured. Set them in Raycast extension preferences.",
+    );
+  }
   cachedClient = new CraftClient({ url: prefs.craftUrl, key: prefs.craftKey });
   return cachedClient;
 }

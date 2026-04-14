@@ -30,12 +30,13 @@ type SearchHit = {
 /**
  * Search across every document in the user's Craft vault.
  *
- * Returns documents matching the query with title, snippet, and metadata.
- * Uses Craft's local SQLite FTS5 index for instant results (<10ms).
- * Falls back to the Craft API when local data is unavailable.
- *
- * Use this tool when the user asks to find notes, look up content, or search
- * for anything in their Craft vault.
+ * Defaults: limit → 20.
+ * Example: { query: "weekly review" } or { query: "craft*" } for prefix.
+ * Use this when: user asks to find notes, look up content, or search the
+ * whole vault. Fast: uses local FTS5 index when available.
+ * DO NOT use this to: search within a single document (use search-in-document),
+ * list documents by metadata (use list-documents), or list daily notes (use
+ * list-daily-notes).
  */
 export default async function tool({
   query,

@@ -37,10 +37,16 @@ type UpdateResult = {
 };
 
 /**
- * Update an existing task in Craft.
+ * Update an existing task (checkbox block) in Craft.
  *
- * Use this to mark tasks as done/canceled, reschedule them, or change their
- * text. Get task IDs from list-tasks.
+ * Defaults: fields not provided are left unchanged.
+ * Example: { id: "abc-...", state: "done" } marks a task complete.
+ * Use this when: user wants to mark tasks done/canceled, reschedule them,
+ * or edit task text. Get task IDs from list-tasks.
+ * DO NOT use this to: edit a document's body (use update-block or
+ * append-to-document), change a document title (Craft API doesn't support it),
+ * or set document content (use create-document with content, or
+ * append-to-document). This tool only targets existing task blocks.
  */
 export default async function tool({
   id,

@@ -35,12 +35,13 @@ type DocSummary = {
 /**
  * List documents in the user's Craft vault with optional filters.
  *
- * Use this tool when the user asks to browse, list, or show their documents
- * (e.g. "show me recent notes", "list my daily notes from this week", "what
- * have I modified lately").
- *
- * Results are sorted by last modified date (most recent first).
- * Uses local data (~180ms for full vault) or falls back to the API.
+ * Defaults: limit → 50. No filters → all docs sorted by last modified.
+ * Example: { modifiedAfter: "2026-04-01", tag: "wip" } returns recent wip docs.
+ * Use this when: user asks to browse, list, or show docs ("recent notes",
+ * "what have I modified lately", "docs tagged X").
+ * DO NOT use this to: search by full-text content (use search-craft), list
+ * only daily notes (use list-daily-notes for date-sorted output), or list
+ * tasks (use list-tasks).
  */
 export default async function tool({
   modifiedAfter,
